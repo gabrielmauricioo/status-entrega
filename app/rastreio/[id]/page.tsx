@@ -1,60 +1,53 @@
 'use client';
 import { useEffect, useState, use } from 'react';
 
-const statusEtapas = ['Confirmado', 'Preparando Entrega', 'A Caminho', 'Entregue'];
-
 export default function Rastreio({ params }: { params: Promise<{ id: string }> }) {
-  const { id } = use(params);
+  const resolvedParams = use(params);
   const [pedido, setPedido] = useState<any>(null);
 
   useEffect(() => {
     const buscar = async () => {
-      const res = await fetch('/api/pedidos', { method: 'POST', body: JSON.stringify({ action: 'get_one', id }) });
+      const res = await fetch('/api/pedidos', { 
+        method: 'POST', 
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'get_one', id: resolvedParams.id }) 
+      });
       const data = await res.json();
       setPedido(data);
     };
     buscar();
-    const interval = setInterval(buscar, 5000);
-    return () => clearInterval(interval);
-  }, [id]);
+    const int = setInterval(buscar, 5000);
+    return () => clearInterval(int);
+  }, [resolvedParams.id]);
 
-  if (!pedido) return <div className="flex justify-center mt-20 text-gray-500 italic">Buscando seu pedido...</div>;
+  if (!pedido) return <div className="p-10 text-center text-gray-500">Buscando pedido...</div>;
 
-  const etapaAtual = statusEtapas.indexOf(pedido.status);
+  const etapas = ['Confirmado', 'Preparando Entrega', 'A Caminho', 'Entregue'];
+  const atual = etapas.indexOf(pedido.status);
 
   return (
-    <div className="min-h-screen bg-gray-50 p-4 text-gray-900">
-      <div className="max-w-md mx-auto bg-white rounded-3xl shadow-2xl overflow-hidden mt-8">
-        <div className="bg-blue-600 p-8 text-white text-center">
-          <h1 className="text-xl font-bold uppercase tracking-widest">Rastreio de Entrega</h1>
-          <p className="mt-2 text-blue-100">Olá, {pedido.cliente}!</p>
+    <div className="min-h-screen bg-white p-6 font-sans text-slate-900">
+      <div className="max-w-md mx-auto border rounded-3xl p-8 shadow-2xl shadow-blue-100">
+        <h1 className="text-2xl font-black text-center text-blue-600 mb-8">Status da Entrega</h1>
+        
+        <div className="bg-gray-50 p-4 rounded-2xl mb-10">
+          <p className="text-sm font-bold text-gray-400">CLIENTE</p>
+          <p className="font-bold">{pedido.cliente}</p>
+          <p className="text-sm font-bold text-gray-400 mt-3">PRODUTO</p>
+          <p className="font-bold">{pedido.produto}</p>
         </div>
 
-        <div className="p-8">
-          <div className="bg-gray-50 p-4 rounded-2xl border border-gray-100 mb-8">
-            <p className="text-xs font-bold text-gray-400 uppercase">Item</p>
-            <p className="text-lg font-bold text-gray-800">📦 {pedido.produto}</p>
-            <hr className="my-3" />
-            <p className="text-xs font-bold text-gray-400 uppercase">Endereço</p>
-            <p className="text-sm font-medium text-gray-700">{pedido.endereco}</p>
-          </div>
-
-          <div className="relative">
-            {statusEtapas.map((s, i) => (
-              <div key={s} className="flex items-center mb-10 last:mb-0 relative">
-                {i < statusEtapas.length - 1 && (
-                  <div className={`absolute left-4 top-8 w-0.5 h-10 ${i < etapaAtual ? 'bg-green-500' : 'bg-gray-200'}`} />
-                )}
-                <div className={`w-9 h-9 rounded-full flex items-center justify-center z-10 border-4 ${i <= etapaAtual ? 'bg-green-500 border-green-100' : 'bg-gray-100 border-white'}`}>
-                  {i <= etapaAtual && <span className="text-white text-sm">✓</span>}
-                </div>
-                <div className="ml-4">
-                  <p className={`font-bold ${i === etapaAtual ? 'text-blue-600 text-lg' : i < etapaAtual ? 'text-gray-800' : 'text-gray-300'}`}>{s}</p>
-                  {i === etapaAtual && <p className="text-xs text-blue-400 animate-pulse font-bold uppercase">Acompanhe agora</p>}
-                </div>
+        <div className="space-y-8">
+          {etapas.map((e, i) => (
+            <div key={e} className="flex items-center gap-4">
+              <div className={`w-8 h-8 rounded-full flex items-center justify-center font-bold ${i <= atual ? 'bg-green-500 text-white' : 'bg-gray-100 text-gray-300'}`}>
+                {i <= atual ? '✓' : i + 1}
               </div>
-            ))}
-          </div>
+              <p className={`font-bold ${i === atual ? 'text-blue-600 text-lg' : i < atual ? 'text-gray-800' : 'text-gray-300'}`}>
+                {e}
+              </p>
+            </div>
+          ))}
         </div>
       </div>
     </div>

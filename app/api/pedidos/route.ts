@@ -1,13 +1,18 @@
 import { NextResponse } from 'next/server';
 
-// Banco de dados temporário global para não sumir no "Hot Reload" do desenvolvimento
-if (!(global as any).bancoDePedidos) {
-  (global as any).bancoDePedidos = [];
+// Simulação de banco de dados global
+const globalAny: any = global;
+if (!globalAny.bancoDePedidos) {
+  globalAny.bancoDePedidos = [];
 }
-const banco = (global as any).bancoDePedidos;
 
+// Método GET: Se você acessar o link da API no navegador, verá isso. 
+// Ajuda a confirmar que o 404 sumiu.
 export async function GET() {
-  return NextResponse.json({ status: "API FUNCIONANDO!", dados: banco });
+  return NextResponse.json({ 
+    status: "API Online na Vercel", 
+    total_pedidos: globalAny.bancoDePedidos.length 
+  });
 }
 
 export async function POST(request: Request) {
@@ -15,28 +20,33 @@ export async function POST(request: Request) {
     const body = await request.json();
     const { action, pedido, id, status } = body;
 
+    // Criar pedido
     if (action === 'create') {
-      banco.push(pedido);
+      globalAny.bancoDePedidos.push(pedido);
       return NextResponse.json({ success: true });
     } 
     
+    // Atualizar status
     if (action === 'update') {
-      const index = banco.findIndex((p: any) => p.id === id);
-      if (index !== -1) banco[index].status = status;
+      globalAny.bancoDePedidos = globalAny.bancoDePedidos.map((p: any) => 
+        p.id === id ? { ...p, status } : p
+      );
       return NextResponse.json({ success: true });
     }
 
+    // Buscar todos (Painel)
     if (action === 'get_all') {
-      return NextResponse.json(banco);
+      return NextResponse.json(globalAny.bancoDePedidos);
     }
 
+    // Buscar um (Rastreio)
     if (action === 'get_one') {
-      const encontrado = banco.find((p: any) => p.id === id);
+      const encontrado = globalAny.bancoDePedidos.find((p: any) => p.id === id);
       return NextResponse.json(encontrado || null);
     }
 
     return NextResponse.json({ error: 'Ação inválida' }, { status: 400 });
   } catch (error) {
-    return NextResponse.json({ error: 'Erro no servidor' }, { status: 500 });
+    return NextResponse.json({ error: 'Erro interno' }, { status: 500 });
   }
 }
