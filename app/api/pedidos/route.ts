@@ -1,52 +1,36 @@
 import { NextResponse } from 'next/server';
-
-// Simulação de banco de dados global
-const globalAny: any = global;
-if (!globalAny.bancoDePedidos) {
-  globalAny.bancoDePedidos = [];
-}
-
-// Método GET: Se você acessar o link da API no navegador, verá isso. 
-// Ajuda a confirmar que o 404 sumiu.
-export async function GET() {
-  return NextResponse.json({ 
-    status: "API Online na Vercel", 
-    total_pedidos: globalAny.bancoDePedidos.length 
-  });
-}
+import { supabase } from '@/lib/superbase';
 
 export async function POST(request: Request) {
   try {
-    const body = await request.json();
-    const { action, pedido, id, status } = body;
+    const { action, pedido, id, status } = await request.json();
 
-    // Criar pedido
     if (action === 'create') {
-      globalAny.bancoDePedidos.push(pedido);
+      const { error } = await supabase.from('pedidos').insert([pedido]);
+      if (error) throw error;
       return NextResponse.json({ success: true });
-    } 
-    
-    // Atualizar status
+    }
+
     if (action === 'update') {
-      globalAny.bancoDePedidos = globalAny.bancoDePedidos.map((p: any) => 
-        p.id === id ? { ...p, status } : p
-      );
+      const { error } = await supabase.from('pedidos').update({ status }).eq('id', id);
+      if (error) throw error;
       return NextResponse.json({ success: true });
     }
 
-    // Buscar todos (Painel)
     if (action === 'get_all') {
-      return NextResponse.json(globalAny.bancoDePedidos);
+      const { data, error } = await supabase.from('pedidos').select('*').order('created_at', { ascending: false });
+      if (error) throw error;
+      return NextResponse.json(data);
     }
 
-    // Buscar um (Rastreio)
     if (action === 'get_one') {
-      const encontrado = globalAny.bancoDePedidos.find((p: any) => p.id === id);
-      return NextResponse.json(encontrado || null);
+      const { data, error } = await supabase.from('pedidos').select('*').eq('id', id).single();
+      if (error) throw error;
+      return NextResponse.json(data);
     }
 
     return NextResponse.json({ error: 'Ação inválida' }, { status: 400 });
-  } catch (error) {
-    return NextResponse.json({ error: 'Erro interno' }, { status: 500 });
+  } catch (error: any) {
+    return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }
